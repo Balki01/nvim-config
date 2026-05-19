@@ -2,8 +2,41 @@
 -- See ~/.config/nvim/CHEATSHEET.md for keybindings.
 
 return {
-  -- ── Claude Code IDE integration ────────────────────────────────────────────
-  -- snacks.nvim is already provided by LazyVim; just declare the dependency.
+  -- ── Avante: Cursor-like inline AI (Claude provider) ───────────────────────
+  -- Default bindings on <leader>a*:
+  --   <leader>aa  ask (sidebar chat)
+  --   <leader>ae  edit (visual select then natural language)
+  --   <leader>ar  refresh
+  --   <leader>at  toggle suggestions
+  --   <leader>aA  add file as context
+  --   <leader>ah  history
+  -- Requires ANTHROPIC_API_KEY in your environment.
+  {
+    "yetone/avante.nvim",
+    event = "VeryLazy",
+    build = "make",
+    opts = {
+      provider = "claude",
+      claude = {
+        endpoint = "https://api.anthropic.com",
+        model = "claude-sonnet-4-5",
+        max_tokens = 8192,
+      },
+      -- Inline ghost-text suggestions like Copilot. Off by default; toggle
+      -- with <leader>at if you want to try them.
+      auto_suggestions = false,
+      auto_suggestions_provider = "claude",
+    },
+    dependencies = {
+      "stevearc/dressing.nvim",
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      "nvim-mini/mini.icons",
+    },
+  },
+
+  -- ── Claude Code (terminal CLI in a pane) ──────────────────────────────────
+  -- Now under <leader>p* (Pane) since avante owns <leader>a*.
   {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
@@ -13,20 +46,39 @@ return {
       "ClaudeCodeDiffAccept", "ClaudeCodeDiffDeny", "ClaudeCodeSelectModel",
     },
     keys = {
-      { "<leader>ac", "<cmd>ClaudeCode<cr>",                desc = "Claude: toggle" },
-      { "<leader>af", "<cmd>ClaudeCodeFocus<cr>",           desc = "Claude: focus" },
-      { "<leader>ar", "<cmd>ClaudeCode --resume<cr>",       desc = "Claude: resume" },
-      { "<leader>aC", "<cmd>ClaudeCode --continue<cr>",     desc = "Claude: continue last" },
-      { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>",     desc = "Claude: pick model" },
-      -- ":" not "<cmd>" so % expands to current filename
-      { "<leader>ab", ":ClaudeCodeAdd %<cr>",               desc = "Claude: add buffer" },
-      { "<leader>as", "<cmd>ClaudeCodeSend<cr>",   mode = "v", desc = "Claude: send selection" },
-      { "<leader>aA", "<cmd>ClaudeCodeDiffAccept<cr>",      desc = "Claude: accept diff" },
-      { "<leader>aD", "<cmd>ClaudeCodeDiffDeny<cr>",        desc = "Claude: reject diff" },
+      { "<leader>pc", "<cmd>ClaudeCode<cr>",                desc = "Claude pane: toggle" },
+      { "<leader>pf", "<cmd>ClaudeCodeFocus<cr>",           desc = "Claude pane: focus" },
+      { "<leader>pr", "<cmd>ClaudeCode --resume<cr>",       desc = "Claude pane: resume" },
+      { "<leader>pC", "<cmd>ClaudeCode --continue<cr>",     desc = "Claude pane: continue last" },
+      { "<leader>pm", "<cmd>ClaudeCodeSelectModel<cr>",     desc = "Claude pane: pick model" },
+      -- ":" not "<cmd>" so % expands
+      { "<leader>pb", ":ClaudeCodeAdd %<cr>",               desc = "Claude pane: add buffer" },
+      { "<leader>ps", "<cmd>ClaudeCodeSend<cr>",   mode = "v", desc = "Claude pane: send selection" },
+      { "<leader>pa", "<cmd>ClaudeCodeDiffAccept<cr>",      desc = "Claude pane: accept diff" },
+      { "<leader>pd", "<cmd>ClaudeCodeDiffDeny<cr>",        desc = "Claude pane: reject diff" },
+      -- Hover-with-Claude: explain symbol under cursor in the pane
+      {
+        "<leader>ph",
+        function()
+          local word = vim.fn.expand("<cword>")
+          local file = vim.fn.expand("%:t")
+          if word == "" then
+            vim.notify("No word under cursor", vim.log.levels.WARN)
+            return
+          end
+          vim.cmd("ClaudeCode")
+          -- Send a focused explanation prompt
+          local prompt = string.format("Explain `%s` in %s: what it is, how it's used, and any gotchas.", word, file)
+          vim.defer_fn(function()
+            vim.cmd("ClaudeCodeSend " .. vim.fn.shellescape(prompt))
+          end, 200)
+        end,
+        desc = "Claude pane: explain word under cursor",
+      },
     },
   },
 
-  -- ── Symbol outline (LazyVim already has trouble; we add aerial too) ───────
+  -- ── Symbol outline ─────────────────────────────────────────────────────────
   {
     "stevearc/aerial.nvim",
     cmd = { "AerialToggle", "AerialOpen", "AerialNavToggle" },
@@ -40,10 +92,7 @@ return {
     },
   },
 
-  -- ── Treesitter: add kernel-relevant parsers + textobjects ────────────────
-  -- LazyVim already configures nvim-treesitter and includes
-  -- nvim-treesitter-textobjects under its hood. We extend the parser list
-  -- and the textobjects keymaps via opts callbacks (no setup() override).
+  -- ── Treesitter: kernel parsers + textobjects via LazyVim's spec ──────────
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
@@ -52,8 +101,6 @@ return {
         "c", "cpp", "rust", "make", "rst", "diff", "gitcommit",
         "git_rebase", "devicetree", "kconfig",
       })
-
-      -- textobjects extensions: function/scope navigation
       opts.textobjects = opts.textobjects or {}
       opts.textobjects.select = vim.tbl_deep_extend("force", opts.textobjects.select or {}, {
         enable = true,
@@ -79,8 +126,6 @@ return {
   },
 
   -- ── cscope integration for macro-heavy kernel code ────────────────────────
-  -- Bound under <leader>j (jump) to avoid colliding with LazyVim's
-  -- <leader>f (file/find) submenu.
   {
     "dhananjaylatkar/cscope_maps.nvim",
     dependencies = { "folke/which-key.nvim", "nvim-telescope/telescope.nvim" },
@@ -99,12 +144,10 @@ return {
     },
   },
 
-  -- ── Linux kernel coding-style helper (auto kernel formatting on .c) ──────
+  -- ── Linux kernel coding-style helper ──────────────────────────────────────
   { "vivien/vim-linux-coding-style", ft = "c" },
 
-  -- ── DAP debugger (kernel debugging via remote gdb) ────────────────────────
-  -- LazyVim has a dap extra; this only adds the gdb adapter for ARM kernels.
-  -- Enable LazyVim's dap.core extra first via :LazyExtras.
+  -- ── DAP gdb adapter for ARM kernel ────────────────────────────────────────
   {
     "mfussenegger/nvim-dap",
     optional = true,
