@@ -74,14 +74,29 @@ return {
   },
 
   -- ── Claude Code (terminal CLI in a pane) ──────────────────────────────────
-  -- Now under <leader>p* (Pane) since avante owns <leader>a*.
+  -- Tweaked to feel inline-overlay-y: opens on the right at 40% width,
+  -- auto-focuses on selection-send so you can type the prompt right away.
   {
     "coder/claudecode.nvim",
     dependencies = { "folke/snacks.nvim" },
-    config = true,
     cmd = {
       "ClaudeCode", "ClaudeCodeFocus", "ClaudeCodeAdd", "ClaudeCodeSend",
       "ClaudeCodeDiffAccept", "ClaudeCodeDiffDeny", "ClaudeCodeSelectModel",
+    },
+    opts = {
+      terminal_cmd = "claude",
+      terminal = {
+        provider           = "auto",   -- snacks if available, else native
+        split_side         = "right",
+        split_width_percentage = 0.40, -- 40% of editor width
+        auto_close         = true,     -- close pane after diff accept/deny
+      },
+      diff_opts = {
+        layout = "vertical",          -- side-by-side diff
+        keep_terminal_focus = false,  -- focus diff window after edit so you can review
+      },
+      -- Auto-focus the pane after :ClaudeCodeSend so you can type immediately
+      focus_after_send = true,
     },
     keys = {
       { "<leader>pc", "<cmd>ClaudeCode<cr>",                desc = "Claude pane: toggle" },

@@ -23,6 +23,13 @@ end, { desc = "checkpatch on HEAD commit" })
 map("n", "<leader>cb", "<cmd>make<cr>",       { desc = "Build (:make)" })
 map("n", "<leader>cB", "<cmd>make clean<cr>", { desc = "Build clean" })
 
+-- ── AI inline edit (Cursor-style) using local `claude` CLI ──────────────
+-- Visual-select code, press <leader>ai, type instruction, watch the
+-- selection get rewritten in place. `u` to undo if not happy.
+-- Uses the local CLI auth — no API key needed.
+map("v", "<leader>ai", function() require("custom.ai-edit").edit() end,
+  { desc = "AI edit selection (claude CLI)" })
+
 -- ── Tags ─────────────────────────────────────────────────────────────────
 -- Built-in vim tag commands (work whenever a tags file is present):
 --   <C-]>   jump to tag definition
