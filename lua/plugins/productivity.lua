@@ -14,7 +14,9 @@ return {
     },
     opts = {
       enabled = false, -- start off; toggle with <leader>gB
-      message_template = " <author> | <date> | <summary> ",
+      -- <sha> = short commit hash so you can `git show <sha>` directly.
+      -- <author> | <date relative> | <summary>
+      message_template = " <sha> | <author> | <date> | <summary> ",
       date_format = "%r", -- relative
     },
     -- f-person/git-blame.nvim is configured via vim.g.* options
