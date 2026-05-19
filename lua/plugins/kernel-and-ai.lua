@@ -2,51 +2,74 @@
 -- See ~/.config/nvim/CHEATSHEET.md for keybindings.
 
 return {
-  -- ── Avante: Cursor-like inline AI (Claude provider) ───────────────────────
-  -- Disabled until a valid Anthropic API key is set. To re-enable:
-  --   1. Get a key from console.anthropic.com (starts with sk-ant-api03-, ~108 chars)
-  --   2. export ANTHROPIC_API_KEY="..." in your shell rc
-  --   3. Set `enabled = true` below and run :Lazy sync
-  -- Note: a Claude.ai subscription does NOT include API access; that's
-  -- separate billing. Use claudecode.nvim (<leader>p*) for now since it
-  -- rides on the local `claude` CLI subscription.
+  -- ── CodeCompanion: chat + inline edits via Claude (Copilot or API) ───────
+  -- Tries adapters in this order (first one that authenticates wins):
+  --   1. copilot (GitHub Copilot subscription, includes Claude Sonnet 4.5)
+  --   2. anthropic (raw ANTHROPIC_API_KEY, console.anthropic.com)
+  --
+  -- Switch on the fly with: :CodeCompanionAdapter
+  --
+  -- Bindings:
+  --   <leader>aa   chat (sidebar) - works in normal & visual mode
+  --   <leader>ae   inline edit - visual select then type instructions
+  --   <leader>ap   action palette - quick presets (explain, refactor, ...)
+  --   <leader>at   toggle the chat window
+  --   <leader>ar   reset the chat
   {
-    "yetone/avante.nvim",
-    enabled = false,
+    "olimorris/codecompanion.nvim",
     cmd = {
-      "AvanteAsk", "AvanteEdit", "AvanteRefresh", "AvanteToggle",
-      "AvanteChat", "AvanteClear", "AvanteShowRepoMap",
+      "CodeCompanion", "CodeCompanionChat", "CodeCompanionActions",
+      "CodeCompanionToggle", "CodeCompanionAdd", "CodeCompanionAdapter",
     },
     keys = {
-      { "<leader>aa", "<cmd>AvanteAsk<cr>",       desc = "Avante: ask",         mode = { "n", "v" } },
-      { "<leader>ae", "<cmd>AvanteEdit<cr>",      desc = "Avante: edit",        mode = "v" },
-      { "<leader>ar", "<cmd>AvanteRefresh<cr>",   desc = "Avante: refresh" },
-      { "<leader>at", "<cmd>AvanteToggle<cr>",    desc = "Avante: toggle" },
-    },
-    build = "make",
-    opts = {
-      provider = "claude",
-      providers = {
-        claude = {
-          endpoint = "https://api.anthropic.com",
-          -- Use the dated model ID — avoid alias names that move
-          model = "claude-sonnet-4-5-20250929",
-          extra_request_body = { max_tokens = 8192 },
-        },
-      },
-      auto_suggestions = false,
-      behaviour = {
-        auto_suggestions = false,
-        auto_set_highlight_group = true,
-        auto_set_keymaps = true,
-        auto_apply_diff_after_generation = false,
-      },
+      { "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>",   desc = "CodeCompanion: chat",          mode = { "n", "v" } },
+      { "<leader>ae", "<cmd>CodeCompanion<cr>",              desc = "CodeCompanion: inline edit",   mode = "v" },
+      { "<leader>ap", "<cmd>CodeCompanionActions<cr>",       desc = "CodeCompanion: action palette" },
+      { "<leader>at", "<cmd>CodeCompanionChat Toggle<cr>",   desc = "CodeCompanion: toggle chat" },
+      { "<leader>ar", "<cmd>CodeCompanionChat<cr>",          desc = "CodeCompanion: new chat" },
+      { "<leader>aA", "<cmd>CodeCompanionAdd<cr>",           desc = "CodeCompanion: add to chat",   mode = { "n", "v" } },
+      { "<leader>am", "<cmd>CodeCompanionAdapter<cr>",       desc = "CodeCompanion: switch adapter" },
     },
     dependencies = {
-      "stevearc/dressing.nvim",
       "nvim-lua/plenary.nvim",
-      "MunifTanjim/nui.nvim",
-      "nvim-mini/mini.icons",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    opts = {
+      adapters = {
+        anthropic = function()
+          return require("codecompanion.adapters").extend("anthropic", {
+            schema = {
+              model = { default = "claude-sonnet-4-5-20250929" },
+              max_tokens = { default = 8192 },
+            },
+          })
+        end,
+        copilot = function()
+          return require("codecompanion.adapters").extend("copilot", {
+            schema = {
+              model = { default = "claude-sonnet-4.5" },
+            },
+          })
+        end,
+      },
+      strategies = {
+        -- "copilot" first; falls back to anthropic if copilot auth missing
+        chat   = { adapter = "copilot" },
+        inline = { adapter = "copilot" },
+      },
+      display = {
+        chat = {
+          window = {
+            layout = "vertical",
+            width  = 0.40,
+            height = 0.85,
+            border = "rounded",
+          },
+          show_settings = true,
+          show_token_count = true,
+        },
+        diff = { provider = "default" },
+      },
     },
   },
 
