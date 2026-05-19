@@ -18,7 +18,8 @@ return {
       { "<leader>ar", "<cmd>ClaudeCode --resume<cr>",       desc = "Claude: resume" },
       { "<leader>aC", "<cmd>ClaudeCode --continue<cr>",     desc = "Claude: continue last" },
       { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>",     desc = "Claude: pick model" },
-      { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>",           desc = "Claude: add buffer" },
+      -- ":" not "<cmd>" so % expands to current filename
+      { "<leader>ab", ":ClaudeCodeAdd %<cr>",               desc = "Claude: add buffer" },
       { "<leader>as", "<cmd>ClaudeCodeSend<cr>",   mode = "v", desc = "Claude: send selection" },
       { "<leader>aA", "<cmd>ClaudeCodeDiffAccept<cr>",      desc = "Claude: accept diff" },
       { "<leader>aD", "<cmd>ClaudeCodeDiffDeny<cr>",        desc = "Claude: reject diff" },
@@ -39,69 +40,61 @@ return {
     },
   },
 
-  -- ── Treesitter textobjects — function/scope navigation for kernel C ──────
-  -- ]m / [m  next / prev function start
-  -- ]M / [M  next / prev function end
-  -- vaf / vif    visual select around / inside function
-  -- vac / vic    visual select around / inside class/struct
-  {
-    "nvim-treesitter/nvim-treesitter-textobjects",
-    event = { "BufRead", "BufNewFile" },
-    dependencies = { "nvim-treesitter/nvim-treesitter" },
-    config = function()
-      require("nvim-treesitter.configs").setup({
-        textobjects = {
-          select = {
-            enable = true,
-            lookahead = true,
-            keymaps = {
-              ["af"] = "@function.outer",
-              ["if"] = "@function.inner",
-              ["ac"] = "@class.outer",
-              ["ic"] = "@class.inner",
-              ["ab"] = "@block.outer",
-              ["ib"] = "@block.inner",
-            },
-          },
-          move = {
-            enable = true,
-            set_jumps = true,
-            goto_next_start     = { ["]m"] = "@function.outer", ["]]"] = "@class.outer" },
-            goto_next_end       = { ["]M"] = "@function.outer", ["]["] = "@class.outer" },
-            goto_previous_start = { ["[m"] = "@function.outer", ["[["] = "@class.outer" },
-            goto_previous_end   = { ["[M"] = "@function.outer", ["[]"] = "@class.outer" },
-          },
-        },
-      })
-    end,
-  },
-
-  -- ── Extra treesitter parsers for kernel work ──────────────────────────────
+  -- ── Treesitter: add kernel-relevant parsers + textobjects ────────────────
+  -- LazyVim already configures nvim-treesitter and includes
+  -- nvim-treesitter-textobjects under its hood. We extend the parser list
+  -- and the textobjects keymaps via opts callbacks (no setup() override).
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
-      vim.list_extend(opts.ensure_installed or {}, {
+      opts.ensure_installed = opts.ensure_installed or {}
+      vim.list_extend(opts.ensure_installed, {
         "c", "cpp", "rust", "make", "rst", "diff", "gitcommit",
         "git_rebase", "devicetree", "kconfig",
+      })
+
+      -- textobjects extensions: function/scope navigation
+      opts.textobjects = opts.textobjects or {}
+      opts.textobjects.select = vim.tbl_deep_extend("force", opts.textobjects.select or {}, {
+        enable = true,
+        lookahead = true,
+        keymaps = {
+          ["af"] = "@function.outer",
+          ["if"] = "@function.inner",
+          ["ac"] = "@class.outer",
+          ["ic"] = "@class.inner",
+          ["ab"] = "@block.outer",
+          ["ib"] = "@block.inner",
+        },
+      })
+      opts.textobjects.move = vim.tbl_deep_extend("force", opts.textobjects.move or {}, {
+        enable = true,
+        set_jumps = true,
+        goto_next_start     = { ["]m"] = "@function.outer", ["]]"] = "@class.outer" },
+        goto_next_end       = { ["]M"] = "@function.outer", ["]["] = "@class.outer" },
+        goto_previous_start = { ["[m"] = "@function.outer", ["[["] = "@class.outer" },
+        goto_previous_end   = { ["[M"] = "@function.outer", ["[]"] = "@class.outer" },
       })
     end,
   },
 
   -- ── cscope integration for macro-heavy kernel code ────────────────────────
+  -- Bound under <leader>j (jump) to avoid colliding with LazyVim's
+  -- <leader>f (file/find) submenu.
   {
     "dhananjaylatkar/cscope_maps.nvim",
     dependencies = { "folke/which-key.nvim", "nvim-telescope/telescope.nvim" },
     cmd = { "Cscope", "Cs" },
     keys = {
-      { "<leader>fs", "<cmd>Cs find s <cword><cr>", desc = "cscope: symbol references" },
-      { "<leader>fg", "<cmd>Cs find g <cword><cr>", desc = "cscope: definition" },
-      { "<leader>fC", "<cmd>Cs find c <cword><cr>", desc = "cscope: callers" },
-      { "<leader>fT", "<cmd>Cs find t <cword><cr>", desc = "cscope: text" },
-      { "<leader>fF", "<cmd>Cs find f <cword><cr>", desc = "cscope: file" },
-      { "<leader>fI", "<cmd>Cs find i <cword><cr>", desc = "cscope: includes" },
+      { "<leader>js", "<cmd>Cs find s <cword><cr>", desc = "cscope: symbol references" },
+      { "<leader>jg", "<cmd>Cs find g <cword><cr>", desc = "cscope: definition" },
+      { "<leader>jc", "<cmd>Cs find c <cword><cr>", desc = "cscope: callers" },
+      { "<leader>jt", "<cmd>Cs find t <cword><cr>", desc = "cscope: text" },
+      { "<leader>jf", "<cmd>Cs find f <cword><cr>", desc = "cscope: file" },
+      { "<leader>ji", "<cmd>Cs find i <cword><cr>", desc = "cscope: includes" },
     },
     opts = {
-      prefix = "<leader>f",
+      prefix = "<leader>j",
       cscope = { picker = "telescope", skip_picker_for_single_result = true },
     },
   },
@@ -110,7 +103,8 @@ return {
   { "vivien/vim-linux-coding-style", ft = "c" },
 
   -- ── DAP debugger (kernel debugging via remote gdb) ────────────────────────
-  -- LazyVim has a dap extra; we just add the gdb adapter for ARM kernels.
+  -- LazyVim has a dap extra; this only adds the gdb adapter for ARM kernels.
+  -- Enable LazyVim's dap.core extra first via :LazyExtras.
   {
     "mfussenegger/nvim-dap",
     optional = true,
@@ -131,15 +125,6 @@ return {
           cwd     = "${workspaceFolder}",
         },
       }
-    end,
-  },
-
-  -- ── Force search to use very magic mode ───────────────────────────────────
-  -- Auto-prepend \v to every search pattern (POSIX-style regex).
-  {
-    "nvim-lua/plenary.nvim", -- already a dep, just hook a keymap onto it
-    init = function()
-      vim.keymap.set("n", "/", [[/\v]], { desc = "search (very magic)" })
     end,
   },
 }
