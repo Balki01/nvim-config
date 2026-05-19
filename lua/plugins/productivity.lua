@@ -15,10 +15,10 @@ return {
     config = function()
       require("hover").setup {
         init = function()
+          -- Kernel-focused: only LSP signatures and diagnostics. Skip
+          -- man-pages (noise for kernel internals) and dictionary
+          -- (irrelevant for C identifiers).
           require("hover.providers.lsp")
-          require("hover.providers.gh")
-          require("hover.providers.man")
-          require("hover.providers.dictionary")
           require("hover.providers.diagnostic")
         end,
         preview_opts = { border = "rounded" },
