@@ -3,11 +3,16 @@
 
 return {
   -- ── Avante: Cursor-like inline AI (Claude provider) ───────────────────────
-  -- Loaded only when invoked (cmd / keys), not at startup, to keep its
-  -- WinEnter / ModeChanged autocmds from firing constantly.
-  -- Requires ANTHROPIC_API_KEY in your environment.
+  -- Disabled until a valid Anthropic API key is set. To re-enable:
+  --   1. Get a key from console.anthropic.com (starts with sk-ant-api03-, ~108 chars)
+  --   2. export ANTHROPIC_API_KEY="..." in your shell rc
+  --   3. Set `enabled = true` below and run :Lazy sync
+  -- Note: a Claude.ai subscription does NOT include API access; that's
+  -- separate billing. Use claudecode.nvim (<leader>p*) for now since it
+  -- rides on the local `claude` CLI subscription.
   {
     "yetone/avante.nvim",
+    enabled = false,
     cmd = {
       "AvanteAsk", "AvanteEdit", "AvanteRefresh", "AvanteToggle",
       "AvanteChat", "AvanteClear", "AvanteShowRepoMap",
