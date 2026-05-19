@@ -2,6 +2,78 @@
 -- See ~/.config/nvim/CHEATSHEET.md for keybindings.
 
 return {
+  -- ── Hover documentation (function signatures, kernel-doc) ──────────────
+  -- Press K on any function/macro/type to see its signature, doc comment,
+  -- and return type from clangd. Same window also auto-pops after 500ms
+  -- of cursor idle on a symbol.
+  --
+  -- Extra hover providers: dictionary for prose, GitHub for URLs,
+  -- man-pages for syscalls.
+  {
+    "lewis6991/hover.nvim",
+    event = "VeryLazy",
+    config = function()
+      require("hover").setup {
+        init = function()
+          require("hover.providers.lsp")
+          require("hover.providers.gh")
+          require("hover.providers.man")
+          require("hover.providers.dictionary")
+          require("hover.providers.diagnostic")
+        end,
+        preview_opts = { border = "rounded" },
+        preview_window = false,
+        title = true,
+        mouse_providers = { "LSP" },
+        mouse_delay = 1000,
+      }
+      -- Replace default K with hover.nvim's multi-provider hover
+      vim.keymap.set("n", "K",       require("hover").hover,        { desc = "hover" })
+      vim.keymap.set("n", "gK",      require("hover").hover_select, { desc = "hover (pick provider)" })
+      -- Cycle providers when hover popup is open
+      vim.keymap.set("n", "<C-p>",   function() require("hover").hover_switch("previous") end, { desc = "hover prev" })
+      vim.keymap.set("n", "<C-n>",   function() require("hover").hover_switch("next") end,     { desc = "hover next" })
+    end,
+  },
+
+  -- ── Signature help while typing function args ─────────────────────────
+  -- When you type `regmap_write(` a popup shows each parameter
+  -- (name + type) with the active one highlighted. Auto-disappears.
+  {
+    "ray-x/lsp_signature.nvim",
+    event = "InsertEnter",
+    opts = {
+      bind = true,
+      hint_enable = false,        -- no inline hint, just floating popup
+      handler_opts = { border = "rounded" },
+      floating_window = true,
+      floating_window_above_cur_line = true,
+      hi_parameter = "Search",    -- highlight active arg
+      max_height = 12,
+    },
+  },
+
+  -- ── Auto-hover on cursor idle (no key press needed) ────────────────────
+  -- Triggers vim.lsp.buf.hover() after `updatetime` ms of idle on a
+  -- symbol. The popup auto-closes when you move.
+  {
+    "lewis6991/hover.nvim", -- already declared above; same plugin reused
+    optional = true,
+    init = function()
+      vim.opt.updatetime = 500
+      local grp = vim.api.nvim_create_augroup("auto_hover", { clear = true })
+      vim.api.nvim_create_autocmd("CursorHold", {
+        group = grp,
+        callback = function()
+          local ft = vim.bo.filetype
+          if ft == "" or ft == "TelescopePrompt" then return end
+          local ok, hover = pcall(require, "hover")
+          if ok then pcall(hover.hover) end
+        end,
+      })
+    end,
+  },
+
   -- ── Inline git blame (subtle, end of line) ─────────────────────────────
   -- Shows author + age at end of line: "// John, 3 days ago — fix WB offset"
   {
