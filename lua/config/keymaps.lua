@@ -20,5 +20,30 @@ end, { desc = "checkpatch on HEAD commit" })
 -- Uses the buffer's `makeprg` option. Default is plain `make`. Kernel
 -- files override `makeprg` in autocmds.lua to do a cross-compile.
 -- Quickfix list opens automatically with errors.
-map("n", "<leader>cb", "<cmd>make<cr>",      { desc = "Build (:make)" })
+map("n", "<leader>cb", "<cmd>make<cr>",       { desc = "Build (:make)" })
 map("n", "<leader>cB", "<cmd>make clean<cr>", { desc = "Build clean" })
+
+-- ── Tags ─────────────────────────────────────────────────────────────────
+-- Built-in vim tag commands (work whenever a tags file is present):
+--   <C-]>   jump to tag definition
+--   <C-t>   jump back from tag stack
+--   <C-w>}  preview tag in a split (peek without jumping)
+--   :tag X  jump to symbol X
+--   :tjump  prompt to choose if multiple matches
+--
+-- Browse all tags via Telescope fuzzy picker.
+map("n", "<leader>st", "<cmd>Telescope tags<cr>",                 { desc = "Tags (Telescope)" })
+map("n", "<leader>sT", "<cmd>Telescope current_buffer_tags<cr>",  { desc = "Buffer tags (Telescope)" })
+
+-- ── Kernel: regenerate tags + cscope using the kernel's Makefile ────────
+-- The kernel ships its own ctags/cscope targets that produce a much
+-- better index than plain `ctags -R` (handles arch-specific code,
+-- inline asm, kernel-specific tag kinds).
+vim.api.nvim_create_user_command("KernelTags", function()
+  local cmd = "cd ~/SRC/linux && make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- "
+              .. "tags cscope SRCARCH=arm"
+  vim.cmd("!" .. cmd)
+end, { desc = "Regenerate kernel ctags + cscope databases" })
+
+-- And a key for it
+map("n", "<leader>tk", "<cmd>KernelTags<cr>", { desc = "tags: kernel rebuild" })

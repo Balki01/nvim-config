@@ -2,6 +2,70 @@
 -- See ~/.config/nvim/CHEATSHEET.md for keybindings.
 
 return {
+  -- ── Auto ctags regeneration (vim-gutentags) ────────────────────────────
+  -- Watches the project and updates the tags file on save. You never
+  -- run `ctags -R` manually again. Built-in <C-]>, <C-w>}, :tag, and
+  -- :TselectAll all just work because tags stay current.
+  --
+  -- Initial tag database is generated the first time you open a file
+  -- inside a project root. Subsequent saves do incremental updates.
+  {
+    "ludovicchabant/vim-gutentags",
+    event = { "BufRead", "BufNewFile" },
+    init = function()
+      -- Where gutentags stores per-project tag files (out of the repo).
+      vim.g.gutentags_cache_dir = vim.fn.expand("~/.cache/gutentags")
+      vim.fn.mkdir(vim.g.gutentags_cache_dir, "p")
+
+      -- Tell gutentags what files to skip (binaries, build trees, etc.)
+      vim.g.gutentags_ctags_exclude = {
+        "*.git", "*.svg", "*.hg", "*/tests/*", "build", "dist",
+        "*.json", "*.toml", "*.md", "*.lock", "node_modules",
+        "*.pyc", "*.class", "*.o", "*.ko", "*.a", "*.so",
+        ".cache", ".direnv",
+      }
+
+      -- Recognise the kernel as a project: any directory with these markers
+      vim.g.gutentags_project_root = { ".git", "Makefile", "compile_commands.json" }
+
+      -- Generate ctags + cscope databases together
+      vim.g.gutentags_modules = { "ctags" }
+
+      -- Don't index huge files (kernel has some massive .h)
+      vim.g.gutentags_ctags_extra_args = {
+        "--tag-relative=yes",
+        "--fields=+ailmnS",
+        "--c-kinds=+px",
+        "--c++-kinds=+px",
+      }
+    end,
+    keys = {
+      { "<leader>tu", "<cmd>GutentagsUpdate!<cr>", desc = "tags: regenerate" },
+    },
+  },
+
+  -- ── Better quickfix (used by tag jumps with multiple matches) ──────────
+  -- When `:tjump foo` or <C-]> finds many definitions, the list lands
+  -- in quickfix. nvim-bqf adds:
+  --   live preview window
+  --   fzf-style filtering ('zf' inside qf)
+  --   hot-keys: 'p' preview, 'o' open, 'P' toggle preview
+  {
+    "kevinhwang91/nvim-bqf",
+    ft = "qf",
+    opts = {
+      preview = { winblend = 0 },
+      func_map = {
+        vsplit = "v",
+        split  = "s",
+        tab    = "t",
+        ptogglemode = "P",
+        prevhist = "<",
+        nexthist = ">",
+      },
+    },
+  },
+
   -- ── Glance: peek the actual definition without leaving ────────────────
   -- gpd  →  show function/macro/type definition in a floating window
   -- gpr  →  show all references in a floating window
