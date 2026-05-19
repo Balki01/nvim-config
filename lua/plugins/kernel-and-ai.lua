@@ -17,10 +17,14 @@ return {
     build = "make",
     opts = {
       provider = "claude",
-      claude = {
-        endpoint = "https://api.anthropic.com",
-        model = "claude-sonnet-4-5",
-        max_tokens = 8192,
+      providers = {
+        claude = {
+          endpoint = "https://api.anthropic.com",
+          model = "claude-sonnet-4-5",
+          extra_request_body = {
+            max_tokens = 8192,
+          },
+        },
       },
       -- Inline ghost-text suggestions like Copilot. Off by default; toggle
       -- with <leader>at if you want to try them.
