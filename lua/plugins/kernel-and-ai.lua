@@ -3,33 +3,39 @@
 
 return {
   -- ── Avante: Cursor-like inline AI (Claude provider) ───────────────────────
-  -- Default bindings on <leader>a*:
-  --   <leader>aa  ask (sidebar chat)
-  --   <leader>ae  edit (visual select then natural language)
-  --   <leader>ar  refresh
-  --   <leader>at  toggle suggestions
-  --   <leader>aA  add file as context
-  --   <leader>ah  history
+  -- Loaded only when invoked (cmd / keys), not at startup, to keep its
+  -- WinEnter / ModeChanged autocmds from firing constantly.
   -- Requires ANTHROPIC_API_KEY in your environment.
   {
     "yetone/avante.nvim",
-    event = "VeryLazy",
+    cmd = {
+      "AvanteAsk", "AvanteEdit", "AvanteRefresh", "AvanteToggle",
+      "AvanteChat", "AvanteClear", "AvanteShowRepoMap",
+    },
+    keys = {
+      { "<leader>aa", "<cmd>AvanteAsk<cr>",       desc = "Avante: ask",         mode = { "n", "v" } },
+      { "<leader>ae", "<cmd>AvanteEdit<cr>",      desc = "Avante: edit",        mode = "v" },
+      { "<leader>ar", "<cmd>AvanteRefresh<cr>",   desc = "Avante: refresh" },
+      { "<leader>at", "<cmd>AvanteToggle<cr>",    desc = "Avante: toggle" },
+    },
     build = "make",
     opts = {
       provider = "claude",
       providers = {
         claude = {
           endpoint = "https://api.anthropic.com",
-          model = "claude-sonnet-4-5",
-          extra_request_body = {
-            max_tokens = 8192,
-          },
+          -- Use the dated model ID — avoid alias names that move
+          model = "claude-sonnet-4-5-20250929",
+          extra_request_body = { max_tokens = 8192 },
         },
       },
-      -- Inline ghost-text suggestions like Copilot. Off by default; toggle
-      -- with <leader>at if you want to try them.
       auto_suggestions = false,
-      auto_suggestions_provider = "claude",
+      behaviour = {
+        auto_suggestions = false,
+        auto_set_highlight_group = true,
+        auto_set_keymaps = true,
+        auto_apply_diff_after_generation = false,
+      },
     },
     dependencies = {
       "stevearc/dressing.nvim",
